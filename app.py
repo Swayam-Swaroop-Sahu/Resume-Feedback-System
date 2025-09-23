@@ -5,6 +5,73 @@ from resume_parser import parse_resume
 from JD_parser import extract_skills_from_JD
 from matcher import calculate_skill_match, calculate_ats_score
 from feedback import generate_feedback
+import google.generativeai as genai
+
+def resume_feedback(resume_text, job_description=""):
+    """
+    Generate enhanced feedback for a given resume using Google AI Studio (Gemini).
+
+    Args:
+        resume_text (str): Extracted text from the uploaded resume.
+        job_description (str, optional): Job description to tailor feedback.
+
+    Returns:
+        str: Markdown-formatted feedback from the LLM.
+    """
+    # Configure API key (use provided key or env var)
+    if "GOOGLE_API_KEY" not in os.environ:
+        os.environ["GOOGLE_API_KEY"] = "AIzaSyCvMKBCIKMe97yMlfH6mNCAVZKGEPTPvGw"
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        # Minimal graceful fallback using rule-based feedback
+        return (
+            "### LLM Feedback (fallback)\n"
+            "The AI feedback service is not configured. Set `GOOGLE_API_KEY`.\n\n"
+            "- " + "\n- ".join(generate_feedback(0, [], []))
+        )
+    genai.configure(api_key=api_key)
+
+    jd_context = job_description.strip()
+
+    system_msg = (
+        "You are an expert technical recruiter and resume consultant. "
+        "Provide concise, highly actionable feedback. Use markdown with clear sections. "
+        "Prefer bullet points. Keep to 250-400 words. Tailor advice to the job when provided."
+    )
+
+    user_prompt = (
+        ("Job Description:\n" + jd_context + "\n\n" if jd_context else "") +
+        "Resume Text:\n" + resume_text + "\n\n" +
+        "Return sections in this order with short bullets: \n"
+        "1) Summary Match (0-100 and one line rationale)\n"
+        "2) Strengths\n"
+        "3) Gaps/Missing Skills\n"
+        "4) ATS & Formatting Fixes\n"
+        "5) Impact Upgrades (rewrite 2 bullets as achievement-oriented)\n"
+        "6) Priority Next Steps (top 3)."
+    )
+
+    try:
+        model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            generation_config={
+                "temperature": 0.3,
+                "top_p": 0.9,
+                "max_output_tokens": 800,
+            },
+        )
+        prompt = system_msg + "\n\n" + user_prompt
+        response = model.generate_content(prompt)
+        return (response.text or "").strip()
+    except Exception as e:
+        # Fallback to rule-based if API call fails
+        fallback = generate_feedback(0, [], [])
+        return (
+            "### LLM Feedback (fallback)\n"
+            f"There was an issue generating AI feedback: {e}\n\n"
+            + ("- " + "\n- ".join(fallback) if fallback else "Please try again later.")
+        )
+
 
 # Load skills database using a path relative to this file
 base_dir = os.path.dirname(__file__)
@@ -43,6 +110,9 @@ if st.button("Generate ATS Score and Feedback"):
             
             # Generate feedback
             feedback = generate_feedback(skill_match, resume_data['skills'], job_skills)
+            # Generate LLM feedback (with spinner)
+            with st.spinner("Generating AI feedback..."):
+                llm_feedback_md = resume_feedback(resume_data.get('text', ''), job_description)
             
             # Display results
             st.header("✅ ATS Score")
@@ -58,3 +128,7 @@ if st.button("Generate ATS Score and Feedback"):
                     st.write(f"- {f}")
             else:
                 st.write("Your resume looks great! 👍")
+
+            st.header("💬 LLM Feedback")
+            if llm_feedback_md:
+                st.markdown(llm_feedback_md)
