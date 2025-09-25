@@ -1,0 +1,12 @@
+streamlit
+spacy
+python-docx
+pdfplumber
+scikit-learn
+nltk
+numpy
+pytesseract
+pdf2image
+
+# After installing the above packages, run:
+# python -m spacy download en_core_web_sm
