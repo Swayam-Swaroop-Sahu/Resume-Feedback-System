@@ -16,6 +16,18 @@ from nltk.stem import WordNetLemmatizer
 import warnings
 warnings.filterwarnings('ignore')
 
+# Pre-compiled regex patterns for better performance
+EMAIL_REGEX = re.compile(r'\S+@\S+')
+PHONE_PATTERNS = [
+    re.compile(r'\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}'),  # US format
+    re.compile(r'\+?[0-9]{1,4}[-.\s]?[0-9]{3,4}[-.\s]?[0-9]{3,4}[-.\s]?[0-9]{3,4}'),  # International
+    re.compile(r'\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}'),  # US without country code
+    re.compile(r'[0-9]{3}[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}'),  # Simple US format
+    re.compile(r'\+?[0-9]{10,15}'),  # Long number format
+    re.compile(r'\+?[\s\-\(]?\d{0,3}[\s\-\)]?\d[\d\-\s]{8,12}\d')  # Original pattern as fallback
+]
+PHONE_NORMALIZE_REGEX = re.compile(r'[\s\-\(\)\.]')  # For removing formatting characters
+
 try:
     nltk.data.find('tokenizers/punkt_tab')
     nltk.data.find('corpora/stopwords')
@@ -26,10 +38,15 @@ except LookupError:
     nltk.download('wordnet', quiet=True)
 
 try:
-    nlp = spacy.load('en_core_web_sm')
+    nlp = spacy.load('en_core_web_md')
 except OSError:
-    print("Warning: spaCy model 'en_core_web_sm' not found. Please install it using: python -m spacy download en_core_web_sm")
-    nlp = None
+    try:
+        # Fallback to small model if medium is not available
+        nlp = spacy.load('en_core_web_sm')
+        print("Warning: Using 'en_core_web_sm' model. For better accuracy, install 'en_core_web_md' using: python -m spacy download en_core_web_md")
+    except OSError:
+        print("Warning: No spaCy model found. Please install one using: python -m spacy download en_core_web_md")
+        nlp = None
 
 # lemmatizer will convert all english words to its base form also know as lemma
 lemmatizer = WordNetLemmatizer()
@@ -328,21 +345,13 @@ def extract_text_from_docx(file_or_path):
     return "\n".join([para.text for para in doc.paragraphs])
 
 def extract_contact_info(text):
-    email = re.findall(r'\S+@\S+', text)
+    # Use pre-compiled email regex for better performance
+    email = EMAIL_REGEX.findall(text)
     
-    # More comprehensive phone number patterns
-    phone_patterns = [
-        r'\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}',  # US format
-        r'\+?[0-9]{1,4}[-.\s]?[0-9]{3,4}[-.\s]?[0-9]{3,4}[-.\s]?[0-9]{3,4}',  # International
-        r'\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}',  # US without country code
-        r'[0-9]{3}[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}',  # Simple US format
-        r'\+?[0-9]{10,15}',  # Long number format
-        r'\+?[\s\-\(]?\d{0,3}[\s\-\)]?\d[\d\-\s]{8,12}\d'  # Original pattern as fallback
-    ]
-    
+    # Use pre-compiled phone patterns for better performance
     phones = []
-    for pattern in phone_patterns:
-        matches = re.findall(pattern, text)
+    for pattern in PHONE_PATTERNS:
+        matches = pattern.findall(text)
         phones.extend(matches)
     
     # Remove duplicates while preserving order
@@ -353,8 +362,23 @@ def extract_contact_info(text):
             seen.add(phone)
             unique_phones.append(phone)
     
+    # Normalize the phone number by removing common non-digit characters
+    phone_number = unique_phones[0] if unique_phones else None
+    if phone_number:
+        # Remove spaces, hyphens, parentheses, and dots using pre-compiled regex
+        phone_number = PHONE_NORMALIZE_REGEX.sub('', phone_number)
+        # Remove leading +1 or 1 for US numbers
+        if phone_number.startswith('+1'):
+            phone_number = phone_number[2:]
+        elif phone_number.startswith('1') and len(phone_number) == 11:
+            phone_number = phone_number[1:]
+        
+        # Validate that we have a reasonable phone number (7-15 digits)
+        if not (7 <= len(phone_number) <= 15 and phone_number.isdigit()):
+            phone_number = None
+    
     return {"email": email[0] if email else None,
-            "phone": unique_phones[0] if unique_phones else None}
+            "phone": phone_number}
 
 def extract_skills(text, skills_db):
     """
