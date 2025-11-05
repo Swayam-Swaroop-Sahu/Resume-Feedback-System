@@ -9,4 +9,7 @@ pytesseract
 pdf2image
 
 # After installing the above packages, run:
-# python -m spacy download en_core_web_sm
+# python -m spacy download en_core_web_md
+# (or python -m spacy download en_core_web_sm as fallback)
+# LLM
+google-generativeai==0.7.2
