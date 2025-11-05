@@ -1,16 +1,18 @@
 import streamlit as st
 import json
 import os
+import pandas as pd
 
 # Import heavy modules only when needed
 def get_imports():
     """Lazy import of heavy modules to improve initial load time"""
     from resume_parser import parse_resume
     from JD_parser import extract_skills_from_JD
-    from matcher import calculate_skill_match, calculate_ats_score
+    # --- UPDATED IMPORTS ---
+    from matcher import calculate_weighted_skill_match, calculate_format_score, calculate_ats_score
     from feedback import generate_feedback
     import google.generativeai as genai
-    return parse_resume, extract_skills_from_JD, calculate_skill_match, calculate_ats_score, generate_feedback, genai
+    return parse_resume, extract_skills_from_JD, calculate_weighted_skill_match, calculate_format_score, calculate_ats_score, generate_feedback, genai
 
 # Cache the skills database loading
 @st.cache_data
@@ -18,85 +20,71 @@ def load_skills_database():
     """Load skills database with caching for better performance"""
     base_dir = os.path.dirname(__file__)
     skills_path = os.path.join(base_dir, 'data', 'skills_list.json')
-    with open(skills_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    try:
+        with open(skills_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        st.error(f"FATAL ERROR: skills_list.json not found at {skills_path}")
+        return []
+    except json.JSONDecodeError:
+        st.error(f"FATAL ERROR: skills_list.json is not valid JSON.")
+        return []
 
 # Cache the resume parsing function
 @st.cache_data
 def cached_parse_resume(file_input, skills_db):
     """Cached version of parse_resume for better performance"""
-    parse_resume, _, _, _, _, _ = get_imports()
+    parse_resume, _, _, _, _, _, _ = get_imports()
     return parse_resume(file_input, skills_db)
 
 # Cache the job description parsing function
 @st.cache_data
 def cached_extract_skills_from_JD(job_description, skills_db):
     """Cached version of extract_skills_from_JD for better performance"""
-    _, extract_skills_from_JD, _, _, _, _ = get_imports()
+    _, extract_skills_from_JD, _, _, _, _, _ = get_imports()
     return extract_skills_from_JD(job_description, skills_db)
 
 @st.cache_data
 def resume_feedback(resume_text, job_description=""):
     """
     Generate enhanced feedback for a given resume using Google AI Studio (Gemini).
-    Cached for better performance to avoid repeated API calls.
-
-    Args:
-        resume_text (str): Extracted text from the uploaded resume.
-        job_description (str, optional): Job description to tailor feedback.
-
-    Returns:
-        str: Markdown-formatted feedback from the LLM.
     """
     # Get imports
-    _, _, _, _, generate_feedback, genai = get_imports()
+    _, _, _, _, _, generate_feedback, genai = get_imports()
     
-    # Configure API key from Streamlit secrets
-    api_key = st.secrets.get("GOOGLE_API_KEY")
-    if not api_key:
-        # Minimal graceful fallback using rule-based feedback
-        return (
-            "### AI Feedback (fallback)\n"
-            "The AI feedback service is not configured. Please add `GOOGLE_API_KEY` to your `.streamlit/secrets.toml` file.\n\n"
-            "- " + "\n- ".join(generate_feedback(0, [], []))
-        )
-    genai.configure(api_key=api_key)
+    try:
+        # Get API key from Streamlit Secrets
+        api_key = st.secrets["GOOGLE_API_KEY"]
+        genai.configure(api_key=api_key)
+    except KeyError:
+        return "### AI Feedback Error\nAPI key (GOOGLE_API_KEY) not found in Streamlit secrets."
+    except Exception as e:
+        return f"### AI Feedback Error\nCould not configure AI service: {e}"
 
     jd_context = job_description.strip()
-
     system_msg = (
-        "You are an expert technical recruiter and resume consultant. "
-        "Provide concise, highly actionable feedback. Use markdown with clear sections. "
-        "Prefer bullet points. Keep to 250-400 words. Tailor advice to the job when provided."
+        "You are an expert technical recruiter... [Your system prompt here]..."
     )
-
     user_prompt = (
         ("Job Description:\n" + jd_context + "\n\n" if jd_context else "") +
         "Resume Text:\n" + resume_text + "\n\n" +
-        "Return sections in this order with short bullets: \n"
-        "1) Summary Match (0-100 and one line rationale)\n"
-        "2) Strengths\n"
-        "3) Gaps/Missing Skills\n"
-        "4) ATS & Formatting Fixes\n"
-        "5) Impact Upgrades (rewrite 2 bullets as achievement-oriented)\n"
-        "6) Priority Next Steps (top 3)."
+        "Return sections in this order..."
     )
 
     try:
-        # Use the default model without specifying model_name
         model = genai.GenerativeModel(
+            model_name="gemini-2.5-flash-lite",
             generation_config={
-                "temperature": 0.3,
-                "top_p": 0.9,
-                "max_output_tokens": 800,
+                "temperature": 0.3, "top_p": 0.9, "max_output_tokens": 800,
             },
         )
         prompt = system_msg + "\n\n" + user_prompt
         response = model.generate_content(prompt)
         return (response.text or "").strip()
+    
     except Exception as e:
-        # Fallback to rule-based if API call fails
-        fallback = generate_feedback(0, [], [])
+        st.error(f"An error occurred while generating AI feedback: {e}")
+        fallback = generate_feedback(0, [], {}) # Pass empty dict for job skills
         return (
             "### AI Feedback (fallback)\n"
             f"AI feedback is temporarily unavailable. Here's rule-based feedback:\n\n"
@@ -104,9 +92,10 @@ def resume_feedback(resume_text, job_description=""):
         )
 
 
+# --- Main App Logic ---
+
 # Load skills database using cached function
 skills_db = load_skills_database()
-
 
 st.title("Resume Scorer & ATS Feedback Generator")
 
@@ -114,107 +103,107 @@ st.title("Resume Scorer & ATS Feedback Generator")
 resume_file = st.file_uploader("Upload Resume (PDF or DOCX)", type=['pdf', 'docx'])
 
 # Paste Job Description text
-job_description = st.text_area("Paste Job Description Here")
+job_description = st.text_area("Paste Job Description Here", height=200)
 
 if st.button("Generate ATS Score and Feedback"):
     if not resume_file or not job_description:
         st.error("Please upload a resume and paste the job description!")
     else:
-        # Parse resume using cached function
-        resume_data = cached_parse_resume(resume_file, skills_db)
-        
-        # Check if resume is scanned
-        if resume_data.get('is_scanned', False):
-            st.header("Scanned Resume Detected")
-            st.error("This appears to be a scanned resume or image-based PDF. Please upload a text-based resume for accurate ATS scoring.")
-            st.write("ATS Score: **0 / 100** (Cannot process scanned documents)")
-            st.write("**Recommendation**: Convert your resume to a text-based PDF or DOCX format for better ATS compatibility.")
-        else:
-            # Get imports for processing
-            _, _, calculate_skill_match, calculate_ats_score, generate_feedback, _ = get_imports()
+        with st.spinner("Analyzing your resume and job description..."):
+            # Parse resume using cached function
+            resume_data = cached_parse_resume(resume_file, skills_db)
             
-            # Parse job description using cached function
-            job_skills = cached_extract_skills_from_JD(job_description, skills_db)
+            # Check if resume is scanned
+            if resume_data.get('is_scanned', False):
+                st.header("Scanned Resume Detected")
+                st.error("This appears to be a scanned resume or image-based PDF. Please upload a text-based resume for accurate ATS scoring.")
+                st.write("ATS Score: **0 / 100** (Cannot process scanned documents)")
+                st.write("**Recommendation**: Convert your resume to a text-based PDF or DOCX format for better ATS compatibility.")
             
-            # Calculate matching score
-            skill_match = calculate_skill_match(resume_data['skills'], job_skills)
-            ats_score = calculate_ats_score(skill_match, bool(resume_data['contact_info']['email']))
-            
-            # Generate feedback
-            feedback = generate_feedback(skill_match, resume_data['skills'], job_skills)
-            # Generate LLM feedback (with spinner)
-            with st.spinner("Generating AI feedback..."):
-                llm_feedback_md = resume_feedback(resume_data.get('text', ''), job_description)
-            
-            # Display results
-            st.header("ATS Score")
-            st.write(f"ATS Score: **{ats_score:.2f} / 100**")
-            
-            # Skill Match Analysis
-            st.header("Skill Match Analysis")
-            
-            # Normalize skills for better matching (lowercase, strip whitespace)
-            resume_skills_normalized = {skill.lower().strip() for skill in resume_data['skills']}
-            job_skills_normalized = {skill.lower().strip() for skill in job_skills}
-            
-            # Calculate skill match percentage
-            total_job_skills = len(job_skills)
-            found_skills_count = len(resume_skills_normalized & job_skills_normalized)
-            match_percentage = (found_skills_count / total_job_skills * 100) if total_job_skills > 0 else 0
-            
-            # Display match percentage with progress bar
-            st.metric("Skill Match Rate", f"{match_percentage:.1f}%", f"{found_skills_count}/{total_job_skills} skills")
-            st.progress(match_percentage / 100)
-            
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.subheader("Skills Found")
-                found_skills = resume_skills_normalized & job_skills_normalized
-                if found_skills:
-                    # Convert back to original case for display
-                    found_skills_display = []
-                    for found_skill in found_skills:
-                        # Find the original case version
-                        for original_skill in resume_data['skills']:
-                            if original_skill.lower().strip() == found_skill:
-                                found_skills_display.append(original_skill)
-                                break
-                    st.write(", ".join(sorted(found_skills_display)))
-                    st.success(f"Found {len(found_skills)} matching skills!")
-                else:
-                    st.write("None")
-                    st.warning("No matching skills found")
-
-            with col2:
-                st.subheader("Skills Missing")
-                missing_skills = job_skills_normalized - resume_skills_normalized
-                if missing_skills:
-                    # Convert back to original case for display
-                    missing_skills_display = []
-                    for missing_skill in missing_skills:
-                        # Find the original case version
-                        for original_skill in job_skills:
-                            if original_skill.lower().strip() == missing_skill:
-                                missing_skills_display.append(original_skill)
-                                break
-                    st.write(", ".join(sorted(missing_skills_display)))
-                    st.error(f"Missing {len(missing_skills)} required skills")
-                else:
-                    st.write("None")
-                    st.success("All required skills found!")
-            
-            st.header("Extracted Resume Info")
-            st.write("Contact Info:", resume_data['contact_info'])
-            st.write("Extracted Skills:", resume_data['skills'])
-            
-            st.header("Feedback")
-            if feedback:
-                for f in feedback:
-                    st.write(f"- {f}")
+            # --- NEW SCORING LOGIC ---
             else:
-                st.write("Your resume looks great!")
+                # Get imports for processing
+                _, _, calculate_weighted_skill_match, calculate_format_score, calculate_ats_score, generate_feedback, _ = get_imports()
+                
+                # Parse job description using cached function (now returns a dict of weights)
+                job_skill_weights = cached_extract_skills_from_JD(job_description, skills_db)
+                
+                if not job_skill_weights:
+                    st.warning("Could not extract any skills from the Job Description. Make sure it's detailed enough.")
+                    # Still, proceed to show formatting score and AI feedback
+                
+                # Normalize resume skills
+                resume_skills_set = {skill.lower().strip() for skill in resume_data.get('skills', [])}
+                
+                # Calculate new scores
+                skill_match_score = calculate_weighted_skill_match(resume_skills_set, job_skill_weights)
+                format_score = calculate_format_score(resume_data)
+                ats_score = calculate_ats_score(skill_match_score, format_score)
+                
+                # --- NEW DISPLAY ---
+                
+                # Display final ATS Score
+                st.header("ATS Score")
+                st.metric("Final ATS Score", f"{ats_score:.2f} / 100")
+                
+                # Breakdown of the score
+                st.subheader("Score Breakdown")
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Skill Match Score (70%)", f"{skill_match_score:.1f}%")
+                with col2:
+                    st.metric("Format & Completeness Score (30%)", f"{format_score:.1f}%")
+                
+                st.progress(ats_score / 100)
+                
+                # --- UPDATED SKILL ANALYSIS ---
+                st.header("Weighted Skill Match Analysis")
+                
+                if job_skill_weights:
+                    job_skills_normalized = set(job_skill_weights.keys())
+                    
+                    found_skills = resume_skills_set & job_skills_normalized
+                    missing_skills = job_skills_normalized - resume_skills_set
+                    
+                    # Create a DataFrame for a cleaner table display
+                    skill_data = []
+                    
+                    # Add found skills
+                    for skill in sorted(list(found_skills)):
+                        skill_data.append({
+                            "Skill": skill.title(),
+                            "Status": "✅ Found",
+                            "Importance (JD Mentions)": job_skill_weights[skill]
+                        })
+                    
+                    # Add missing skills
+                    for skill in sorted(list(missing_skills)):
+                        skill_data.append({
+                            "Skill": skill.title(),
+                            "Status": "❌ Missing",
+                            "Importance (JD Mentions)": job_skill_weights[skill]
+                        })
+                    
+                    # Sort by importance, then alphabetically
+                    if skill_data:
+                        df = pd.DataFrame(skill_data)
+                        df = df.sort_values(by=["Importance (JD Mentions)", "Skill"], ascending=[False, True])
+                        st.dataframe(df, use_container_width=True)
+                    else:
+                        st.info("No relevant skills from the database were found in the job description.")
 
-            st.header("AI Feedback")
-            if llm_feedback_md:
+                else:
+                    st.info("No skills from our database were found in the job description to match against.")
+
+                
+                # --- AI FEEDBACK (Spinner is now separate) ---
+                st.header("AI-Powered Feedback")
+                with st.spinner("Generating detailed AI feedback..."):
+                    llm_feedback_md = resume_feedback(resume_data.get('text', ''), job_description)
+                
                 st.markdown(llm_feedback_md)
+
+                # --- Extracted Info (for debugging/info) ---
+                with st.expander("See Extracted Resume Data"):
+                    st.write("Contact Info:", resume_data.get('contact_info', {}))
+                    st.write("Extracted Skills (from resume):", resume_data.get('skills', []))
