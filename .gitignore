@@ -208,3 +208,5 @@ __marimo__/
 
 # Streamlit secrets
 .streamlit/secrets.toml
+
+data/app.db
