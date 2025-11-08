@@ -50,14 +50,6 @@ This project bridges recruiter evaluation logic with candidate clarity, providin
 
 ---
 
-Got it — you’re right.
-GitHub Markdown **doesn’t render arrows, emojis, or inline code fences with labels** (like `yaml Copy code`) correctly.
-Let’s clean that entire section and make it **professionally formatted**, **100% readable**, and **beautifully structured** in Markdown for GitHub.
-
-Here’s your **fixed and perfectly formatted section** — copy-paste directly into your `README.md` (it will render cleanly).
-
----
-
 ## **System Architecture**
 
 ```
