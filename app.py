@@ -242,6 +242,7 @@ span[data-testid="st-expander-toggle-icon"] {
 
 /* Keep header alignment and spacing clean */
 .streamlit-expanderHeader {
+    white-space: normal !important;
     padding-left: 10px !important;
     padding-right: 10px !important;
     font-weight: 600;
@@ -365,11 +366,16 @@ else:
     st.info("No history found yet.")
 
 # Debug
-with st.expander("See Extracted Resume Data"):
+# Debug (no header clipping)
+with st.expander("", expanded=False):
+    st.markdown("### See Extracted Resume Data")
     if resume_file:
         resume_data = cached_parse_resume(resume_file, skills_db)
-        st.write("Contact Info:", resume_data.get('contact_info', {}))
-        st.write("Extracted Skills:", resume_data.get('skills', []))
+        st.json(resume_data.get('contact_info', {}))
+        st.json(resume_data.get('skills', []))
+    else:
+        st.info("Upload a resume to view extracted data.")
+
 
 # --- CLEAR HISTORY BUTTON ---
 import sqlite3

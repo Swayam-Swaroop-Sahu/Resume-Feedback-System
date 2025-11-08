@@ -1,188 +1,253 @@
-# Resume-Feedback-System
+# 🎯 Resume Feedback System  
+### *ATS Score Tracker & Resume Feedback System using NLP, Explainable AI, and Weighted Skill Matching*
 
-ATS Score Tracker & Resume Feedback System Using NLP, Explainable AI, and Weighted Skill Matching
+---
 
-## Overview
+### 🧠 Overview  
+The **Resume Feedback System** is an intelligent, explainable hiring-assist platform that evaluates resumes against job descriptions using **Natural Language Processing (NLP)**, **Explainable AI**, and **Database Management Systems (DBMS)**.  
+It analyzes resumes for **ATS compliance**, detects missing skills, evaluates formatting, and generates **AI-powered personalized feedback** to help candidates optimize their resumes for specific roles.
 
-The Resume Feedback System is a Streamlit-based application designed to analyze resumes against specific Job Descriptions (JD). It performs weighted skill matching, ATS-style formatting checks, provides AI-powered feedback, stores evaluation history, and highlights skill gaps. This project demonstrates practical applications of NLP, explainability, database integration, and full-stack development.
+This project bridges recruiter evaluation logic with candidate clarity, providing **transparent, data-driven, and actionable insights**.
 
-## Authors / Contributors
+---
 
-- **Swayam Swaroop Sahu** (Database logic, backend integration, explainability layer, UI improvements)
-- **Ayush Saraf** (NLP parsing module, JD-resume extraction logic, weighted keyword matching)
-- **Ankush** (User interface components, display formatting, user interaction flows)
-- **Akash** (Frontend layout, input handling, data visualization elements)
+## 👥 Team Members
 
-## Features
+| Name | Role | Key Contributions |
+|------|------|--------------------|
+| **Swayam Swaroop Sahu** | Backend, Database, Explainability | Designed DB schema, backend logic, integrated explainability layer, refined UI |
+| **Ayush Saraf** | NLP & Matching Module | Built JD–Resume parser, keyword extractor, and weighted skill matcher |
+| **Ankush** | UI Design & Frontend | Developed user interface layout, component structuring, and design consistency |
+| **Akash** | Frontend Development | Implemented data visualization and front-end polish |
+
+---
+
+## 🚀 Features
 
 - Resume parsing (skills, contact info, text extraction)
-- JD keyword and frequency extraction
-- Weighted skill match scoring
-- Format and completeness scoring
-- Final ATS score calculation
-- AI-powered improvement suggestions (Gemini API)
-- Missing skill detection
-- Relevance-sorted skill tables
-- SQLite database storage for:
-  - Resume submissions
-  - Job descriptions
-  - Match scoring history
-- Score history viewer inside the app
-- Scanned resume detection
-- Professionally themed frontend (light SaaS theme)
+- Job Description analysis via weighted NLP matching  
+- Skill match scoring with explainable weights  
+- ATS format evaluation for readability & structure  
+- Final ATS score combining multiple weighted metrics  
+- AI feedback (via **Google Gemini API**)  
+- Transparent skill visualization (matched/missing)  
+- SQLite database storage for persistent analysis  
+- History view for previous evaluations  
+- Professionally themed **SaaS-grade UI**  
 
-## Tech Stack
+---
 
-- **Python 3.x**
-- **Streamlit** (frontend)
-- **SQLite** (database)
-- **spaCy / NLP** (resume extraction)
-- **Google Gemini API** (feedback generation)
-- **Pandas** (tabular analysis)
+## 🧩 Tech Stack
 
-## Project Structure
+| Layer | Tools / Technologies |
+|-------|----------------------|
+| **Frontend** | Streamlit |
+| **Backend / Logic** | Python |
+| **Database** | SQLite |
+| **AI / NLP** | spaCy, Google Gemini API |
+| **Data Processing** | Pandas, JSON |
+| **Explainability** | Weighted skill transparency & ATS breakdown |
+
+---
+
+Got it — you’re right.
+GitHub Markdown **doesn’t render arrows, emojis, or inline code fences with labels** (like `yaml Copy code`) correctly.
+Let’s clean that entire section and make it **professionally formatted**, **100% readable**, and **beautifully structured** in Markdown for GitHub.
+
+Here’s your **fixed and perfectly formatted section** — copy-paste directly into your `README.md` (it will render cleanly).
+
+---
+
+## **System Architecture**
+
+```
+Resume (PDF/DOCX)
+        │
+        ▼
+Resume Parser ──► Extracted Text, Skills, Contact Info
+        │
+        ▼
+Job Description Parser ──► Weighted Skill Extraction
+        │
+        ▼
+Weighted Skill Matcher ──► Match %, Missing Skills
+        │
+        ▼
+Format Scoring ──► Layout & Structure Evaluation
+        │
+        ▼
+ATS Scoring ──► Final Composite Score
+        │
+        ▼
+AI Feedback (Gemini) ──► Personalized Suggestions
+        │
+        ▼
+SQLite Storage ──► Resumes, JDs, Matches, Feedback
+        │
+        ▼
+Streamlit Visualization ──► Score Dashboard & History
+```
+
+---
+
+## **Project Structure**
+
+```
 Resume-Feedback-System/
 │
-├── app.py # Main Streamlit application
-├── db.py # Database schema + operations
-├── matcher.py # ATS scoring logic
-├── resume_parser.py # Resume text + skill extraction
-├── JD_parser.py # JD keyword extraction
-├── feedback.py # Rule-based fallback feedback
+├── app.py                  # Main Streamlit application
+├── db.py                   # Database schema and CRUD operations
+├── matcher.py              # Scoring and weighting logic
+├── resume_parser.py        # Resume skill and contact extraction
+├── JD_parser.py            # JD keyword and skill analysis
+├── feedback.py             # AI + fallback feedback system
+│
 ├── data/
-│ ├── skills_list.json # Master skills vocabulary
-│ └── app.db # SQLite history database (auto-created)
-├── requirements.txt # Dependencies
+│   ├── skills_list.json    # Reference list of known skills
+│   └── app.db              # SQLite database (auto-generated)
+│
+├── requirements.txt        # Project dependencies
 └── .streamlit/
-└── secrets.toml # API key (ignored by git)
+    └── secrets.toml        # Google Gemini API key config (gitignored)
+```
 
-text
+---
 
-## Setup Instructions
+## **Installation & Setup**
 
 ### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/Swayam-Swaroop-Sahu/Resume-Feedback-System.git
 cd Resume-Feedback-System
-2. Create a Virtual Environment (recommended)
-bash
+```
+
+### 2. Create a Virtual Environment (Recommended)
+
+```bash
 python -m venv venv
-source venv/bin/activate        # Linux / macOS
-venv\Scripts\activate           # Windows
-3. Install Dependencies
-bash
+venv\Scripts\activate        # For Windows
+source venv/bin/activate     # For macOS / Linux
+```
+
+### 3. Install Dependencies
+
+```bash
 pip install -r requirements.txt
 python -m spacy download en_core_web_md
-4. Configure API Key
-Copy the template file:
+```
 
-bash
+### 4. Configure API Key
+
+Copy the template and add your API key:
+
+```bash
 cp .streamlit/secrets.toml.template .streamlit/secrets.toml
-Edit .streamlit/secrets.toml and add your Google AI API key:
+```
 
-toml
+Then edit `.streamlit/secrets.toml`:
+
+```toml
 GOOGLE_API_KEY = "your_actual_api_key_here"
-5. Run the Application
-bash
+```
+
+### 5. Run the Application
+
+```bash
 streamlit run app.py
-The application will open in your browser at:
+```
 
-text
+App will be available at:
+
+```
 http://localhost:8501
-How It Works (Simplified Pipeline)
-User uploads resume (PDF/DOCX)
+```
 
-User pastes Job Description text
+---
 
-System extracts:
+## **Usage Guide**
 
-Skills
+1. Upload your **resume (PDF or DOCX)**
+2. Paste your **job description (JD)**
+3. Click **Generate ATS Score & Feedback**
+4. View:
 
-Contact info
+   * ATS Score Breakdown
+   * Skill Match Analysis
+   * AI-Powered Feedback
+   * Missing Skill Suggestions
+5. Access **Recent Score History** to review past evaluations
 
-Resume raw text
+---
 
-JD is processed and skill weights are assigned based on frequency
+## **Database & Persistence**
 
-Weighted skill matching occurs
+All user evaluations are stored locally in:
 
-Formatting completeness is evaluated
-
-Final ATS score is computed
-
-Missing critical skills are highlighted
-
-Gemini AI generates improvement feedback
-
-Results are stored in the database
-
-Database Storage
-The following data is stored automatically:
-
-Resume text
-
-Contact email and phone
-
-Extracted skills
-
-JD skill weighting
-
-Final ATS score
-
-Missing skills
-
-AI feedback text
-
-Timestamp
-
-The database file is located at:
-
-text
+```
 ./data/app.db
-Resetting Score History
-Delete the database file:
+```
 
-bash
+**Database Tables**
+
+| Table              | Description                                  |
+| ------------------ | -------------------------------------------- |
+| `resumes`          | Stores resume text, skills, and contact info |
+| `job_descriptions` | Stores JD text and extracted skills          |
+| `matches`          | Stores scores, feedback, and timestamps      |
+
+**Clear Previous History**
+
+```bash
 cd data
-del app.db       # Windows
-rm app.db        # macOS / Linux
-It will recreate automatically on next run.
+del app.db       # (Windows)
+rm app.db        # (macOS / Linux)
+```
 
-Security Notice
-secrets.toml is git-ignored
+The database will auto-recreate on next run.
 
-Never commit API keys to version control
+---
 
-API usage costs are tied to your account
+## **Security Notes**
 
-Future Enhancements (Planned)
-PDF download of feedback
+* `.streamlit/secrets.toml` is excluded from Git tracking.
+* Never share or commit API keys.
+* All AI calls and resume processing happen locally.
 
-Skill recommendation using embeddings
+---
 
-Resume formatting suggestions with examples
+## **Future Enhancements**
 
-JD-to-resume similarity visualization
+* Resume formatting analysis
+* Graphical skill-gap visualization
+* Resume–JD similarity charts
+* PDF report export
+* User login and tracking
+* Cloud deployment (AWS / GCP)
 
-Authentication roles
+---
 
-Exportable evaluation reports
+## **License**
 
-License
-This project is published under the MIT License. You are free to use, modify, and distribute the software with attribution.
+This project is released under the **MIT License**.
+You are free to use, modify, and distribute it with proper attribution.
 
-Acknowledgements
-This project combines coursework theory with practical industry-aligned implementation across:
+---
 
-NLP
+## **Academic Context & Acknowledgements**
 
-Explainable AI
+This project integrates:
 
-ATS pipeline reasoning
+| Area                     | Focus                                         |
+| ------------------------ | --------------------------------------------- |
+| **DBMS Concepts**        | Structured storage & relational schema design |
+| **AI & NLP**             | Resume and JD parsing, skill extraction       |
+| **Explainability**       | Transparent ATS scoring & skill reasoning     |
+| **Software Engineering** | Modular design and UI/UX implementation       |
 
-Scoring strategy design
+Developed collaboratively by:
+**Swayam Swaroop Sahu**, **Ayush Saraf**, **Ankush**, and **Akash**
+at **VIT Vellore (2025)**
 
-Database management
+---
 
-UI/UX modeling

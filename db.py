@@ -19,7 +19,7 @@ def init_db():
     conn = get_conn()
     cur = conn.cursor()
 
-    # ✅ Resume table
+    # Resume table
     cur.execute("""
     CREATE TABLE IF NOT EXISTS resumes(
         resume_id     INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,7 +31,7 @@ def init_db():
     );
     """)
 
-    # ✅ JD table
+    # JD table
     cur.execute("""
     CREATE TABLE IF NOT EXISTS job_descriptions(
         jd_id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,7 +41,7 @@ def init_db():
     );
     """)
 
-    # ✅ Match scoring table
+    # Match scoring table
     cur.execute("""
     CREATE TABLE IF NOT EXISTS matches(
         match_id      INTEGER PRIMARY KEY AUTOINCREMENT,
