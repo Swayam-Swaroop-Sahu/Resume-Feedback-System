@@ -1,9 +1,9 @@
-# 🎯 Resume Feedback System  
+# Resume Feedback System  
 ### *ATS Score Tracker & Resume Feedback System using NLP, Explainable AI, and Weighted Skill Matching*
 
 ---
 
-### 🧠 Overview  
+### Overview  
 The **Resume Feedback System** is an intelligent, explainable hiring-assist platform that evaluates resumes against job descriptions using **Natural Language Processing (NLP)**, **Explainable AI**, and **Database Management Systems (DBMS)**.  
 It analyzes resumes for **ATS compliance**, detects missing skills, evaluates formatting, and generates **AI-powered personalized feedback** to help candidates optimize their resumes for specific roles.
 
@@ -11,7 +11,7 @@ This project bridges recruiter evaluation logic with candidate clarity, providin
 
 ---
 
-## 👥 Team Members
+## Team Members
 
 | Name | Role | Key Contributions |
 |------|------|--------------------|
@@ -22,7 +22,7 @@ This project bridges recruiter evaluation logic with candidate clarity, providin
 
 ---
 
-## 🚀 Features
+## Features
 
 - Resume parsing (skills, contact info, text extraction)
 - Job Description analysis via weighted NLP matching  
@@ -37,7 +37,7 @@ This project bridges recruiter evaluation logic with candidate clarity, providin
 
 ---
 
-## 🧩 Tech Stack
+## Tech Stack
 
 | Layer | Tools / Technologies |
 |-------|----------------------|
